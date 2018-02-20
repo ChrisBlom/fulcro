@@ -9,23 +9,23 @@
                [cljs.util]]
         :cljs [[goog.string :as gstring]
                [goog.object :as gobj]])
-       [clojure.core.async :as async]
-       [clojure.set :as set]
-       [fulcro.history :as hist]
-       [fulcro.logging :as log]
-       [fulcro.tempid :as tempid]
-       [fulcro.transit :as transit]
-       [clojure.zip :as zip]
-       [fulcro.client.impl.data-targeting :as targeting]
-       [fulcro.client.impl.protocols :as p]
-       [fulcro.client.impl.parser :as parser]
-       [fulcro.util :as util]
-       [clojure.walk :as walk :refer [prewalk]]
-       [clojure.string :as str]
-       [clojure.spec.alpha :as s]
+               [clojure.core.async :as async]
+               [clojure.set :as set]
+               [fulcro.history :as hist]
+               [fulcro.logging :as log]
+               [fulcro.tempid :as tempid]
+               [fulcro.transit :as transit]
+               [clojure.zip :as zip]
+               [fulcro.client.impl.data-targeting :as targeting]
+               [fulcro.client.impl.protocols :as p]
+               [fulcro.client.impl.parser :as parser]
+               [fulcro.util :as util]
+               [clojure.walk :as walk :refer [prewalk]]
+               [clojure.string :as str]
+               [clojure.spec.alpha :as s]
     #?(:clj
                [clojure.future :refer :all])
-      [cognitect.transit :as t])
+               [cognitect.transit :as t])
   #?(:clj
      (:import [java.io Writer])))
 
@@ -244,13 +244,13 @@
         ([this#])
         ~'componentWillMount
         ([this#]
-         (let [reconciler# (fulcro.client.primitives/get-reconciler this#)
-               lifecycle#  (get-in reconciler# [:config :lifecycle])
-               indexer#    (get-in reconciler# [:config :indexer])]
-           (when-not (nil? lifecycle#)
-             (lifecycle# this# :mount))
-           (when-not (nil? indexer#)
-             (fulcro.client.impl.protocols/index-component! indexer# this#))))
+          (let [reconciler# (fulcro.client.primitives/get-reconciler this#)
+                lifecycle#  (get-in reconciler# [:config :lifecycle])
+                indexer#    (get-in reconciler# [:config :indexer])]
+            (when-not (nil? lifecycle#)
+              (lifecycle# this# :mount))
+            (when-not (nil? indexer#)
+              (fulcro.client.impl.protocols/index-component! indexer# this#))))
         ~'render
         ([this#])}}))
 
@@ -347,61 +347,61 @@
    :defaults
    `{~'shouldComponentUpdate
      ([this# next-props# next-state#]
-      (if fulcro.client.primitives/*blindly-render*
-        true
-        (let [next-children#     (. next-props# -children)
-              next-props#        (goog.object/get next-props# "fulcro$value")
-              next-props#        (cond-> next-props#
-                                   (instance? FulcroProps next-props#) unwrap)
-              current-props#     (fulcro.client.primitives/props this#)
+       (if fulcro.client.primitives/*blindly-render*
+         true
+         (let [next-children#     (. next-props# -children)
+               next-props#        (goog.object/get next-props# "fulcro$value")
+               next-props#        (cond-> next-props#
+                                    (instance? FulcroProps next-props#) unwrap)
+               current-props#     (fulcro.client.primitives/props this#)
                ; a parent could send in stale props due to a component-local state change..make sure we don't use them. (Props have a timestamp on metadata)
-              next-props-stale?# (> (get-basis-time current-props#) (get-basis-time next-props#))
-              props-changed?#    (and
-                                   (not next-props-stale?#)
-                                   (not= current-props# next-props#))
-              state-changed?#    (and (.. this# ~'-state)
-                                   (not= (goog.object/get (. this# ~'-state) "fulcro$state")
-                                     (goog.object/get next-state# "fulcro$state")))
-              children-changed?# (not= (.. this# -props -children)
-                                   next-children#)]
-          (or props-changed?# state-changed?# children-changed?#))))
+               next-props-stale?# (> (get-basis-time current-props#) (get-basis-time next-props#))
+               props-changed?#    (and
+                                    (not next-props-stale?#)
+                                    (not= current-props# next-props#))
+               state-changed?#    (and (.. this# ~'-state)
+                                    (not= (goog.object/get (. this# ~'-state) "fulcro$state")
+                                      (goog.object/get next-state# "fulcro$state")))
+               children-changed?# (not= (.. this# -props -children)
+                                    next-children#)]
+           (or props-changed?# state-changed?# children-changed?#))))
      ~'componentWillUpdate
      ([this# next-props# next-state#]
-      (when (cljs.core/implements? fulcro.client.primitives/Ident this#)
-        (let [ident#      (fulcro.client.primitives/ident this# (fulcro.client.primitives/props this#))
-              next-ident# (fulcro.client.primitives/ident this# (fulcro.client.primitives/-next-props next-props# this#))]
-          (when (not= ident# next-ident#)
-            (let [idxr# (get-in (fulcro.client.primitives/get-reconciler this#) [:config :indexer])]
-              (when-not (nil? idxr#)
-                (swap! (:indexes idxr#)
-                  (fn [indexes#]
-                    (-> indexes#
-                      (update-in [:ref->components ident#] disj this#)
-                      (update-in [:ref->components next-ident#] (fnil conj #{}) this#)))))))))
-      (fulcro.client.primitives/merge-pending-props! this#)
-      (fulcro.client.primitives/merge-pending-state! this#))
+       (when (cljs.core/implements? fulcro.client.primitives/Ident this#)
+         (let [ident#      (fulcro.client.primitives/ident this# (fulcro.client.primitives/props this#))
+               next-ident# (fulcro.client.primitives/ident this# (fulcro.client.primitives/-next-props next-props# this#))]
+           (when (not= ident# next-ident#)
+             (let [idxr# (get-in (fulcro.client.primitives/get-reconciler this#) [:config :indexer])]
+               (when-not (nil? idxr#)
+                 (swap! (:indexes idxr#)
+                   (fn [indexes#]
+                     (-> indexes#
+                       (update-in [:ref->components ident#] disj this#)
+                       (update-in [:ref->components next-ident#] (fnil conj #{}) this#)))))))))
+       (fulcro.client.primitives/merge-pending-props! this#)
+       (fulcro.client.primitives/merge-pending-state! this#))
      ~'componentDidUpdate
      ([this# prev-props# prev-state#]
-      (fulcro.client.primitives/clear-prev-props! this#))
+       (fulcro.client.primitives/clear-prev-props! this#))
      ~'componentWillMount
      ([this#]
-      (let [indexer# (get-in (fulcro.client.primitives/get-reconciler this#) [:config :indexer])]
-        (when-not (nil? indexer#)
-          (fulcro.client.impl.protocols/index-component! indexer# this#))))
+       (let [indexer# (get-in (fulcro.client.primitives/get-reconciler this#) [:config :indexer])]
+         (when-not (nil? indexer#)
+           (fulcro.client.impl.protocols/index-component! indexer# this#))))
      ~'componentDidMount
      ([this#] (goog.object/set this# "fulcro$mounted" true))
      ~'componentWillUnmount
      ([this#]
-      (let [r#       (fulcro.client.primitives/get-reconciler this#)
-            cfg#     (:config r#)
-            st#      (:state cfg#)
-            indexer# (:indexer cfg#)]
-        (goog.object/set this# "fulcro$mounted" false)
-        (when (and (not (nil? st#))
-                (get-in @st# [:fulcro.client.primitives/queries this#]))
-          (swap! st# update-in [:fulcro.client.primitives/queries] dissoc this#))
-        (when-not (nil? indexer#)
-          (fulcro.client.impl.protocols/drop-component! indexer# this#))))}})
+       (let [r#       (fulcro.client.primitives/get-reconciler this#)
+             cfg#     (:config r#)
+             st#      (:state cfg#)
+             indexer# (:indexer cfg#)]
+         (goog.object/set this# "fulcro$mounted" false)
+         (when (and (not (nil? st#))
+                 (get-in @st# [:fulcro.client.primitives/queries this#]))
+           (swap! st# update-in [:fulcro.client.primitives/queries] dissoc this#))
+         (when-not (nil? indexer#)
+           (fulcro.client.impl.protocols/drop-component! indexer# this#))))}})
 
 (defn reshape [dt {:keys [reshape defaults]}]
   (letfn [(reshape* [x]
@@ -849,10 +849,10 @@
      (assert (not (nil? m)) "get-ident invoked on component with nil props")
      (ident x m)))
   ([class props]
-   #?(:clj  (when-let [ident (-> class meta :ident)]
-              (ident class props))
-      :cljs (when (implements? Ident class)
-              (ident class props)))))
+    #?(:clj  (when-let [ident (-> class meta :ident)]
+               (ident class props))
+       :cljs (when (implements? Ident class)
+               (ident class props)))))
 
 (defn- var? [x]
   (and (symbol? x)
@@ -1446,9 +1446,9 @@
       (if (= '[*] query)
         data
         (let [{props false joins true} (group-by #(or (util/join? %)
-                                                      (util/ident? %)
-                                                      (and (seq? %)
-                                                           (util/ident? (first %))))
+                                                    (util/ident? %)
+                                                    (and (seq? %)
+                                                      (util/ident? (first %))))
                                          query)
               props (mapv #(cond-> % (seq? %) first) props)]
           (loop [joins (seq joins) ret {}]
@@ -1458,7 +1458,7 @@
                                   (seq? join) first)
                     join        (cond-> join
                                   (util/ident? join) (hash-map '[*]))
-                    [key sel]   (util/join-entry join)
+                    [key sel] (util/join-entry join)
                     recurse?    (util/recursion? sel)
                     recurse-key (when recurse? key)
                     v           (if (util/ident? key)
@@ -1747,7 +1747,7 @@
                 (leaf? new-value) (assoc acc key (sweep-one new-value))
                 (and (map? existing-value) (map? new-value)) (update acc key sweep-merge new-value)
                 :else (assoc acc key (sweep new-value)))))
-          target source))
+    target source))
 
 (defn merge-handler
   "Handle merging incoming data, but be sure to sweep it of values that are marked missing. Also triggers the given mutation-merge
@@ -1800,7 +1800,7 @@
                       props' (tree->db c-or-q props)
                       refs   (meta props')]
                   ((:merge-tree config)
-                   (merge-ident config tree' ident props') refs))
+                    (merge-ident config tree' ident props') refs))
                 (merge-ident config tree' ident props)))]
       (reduce step tree refs))))
 
@@ -1923,7 +1923,7 @@
 
 (defn- to-env [x]
   (let [config (if (reconciler? x) (:config x) x)]
-    (select-keys config [:state :shared :parser :mutation-parser :pathopt])))
+    (select-keys config [:state :shared :parser])))
 
 (defn gather-sends
   "Given an environment, a query and a set of remotes return a hash map of remotes
@@ -2270,7 +2270,8 @@
                      data will be normalized into the default database format
                      using the root query. This can be disabled by explicitly
                      setting the optional :normalize parameter to false.
-     :parser       - the parser to be used
+     :parser       - the parser to be used for local database reads.
+     :mutation-parser - the parser to be used for local and remote mutations.
 
    Optional parameters:
      :id           - a unique ID that this reconciler will be known as. Used to resolve global variable usage when more than one app is on a page. If
@@ -2343,7 +2344,6 @@
                          :normalize   (or (not norm?) normalize)
                          :root-render root-render :root-unmount root-unmount
                          :render-mode render-mode
-                         :pathopt     true
                          :migrate     migrate
                          :lifecycle   lifecycle
                          :instrument  instrument :tx-listen tx-listen}
@@ -2502,10 +2502,10 @@
    (react-set-state! component new-state nil))
   ([component new-state cb]
    {:pre [(component? component)]}
-   #?(:clj  (do
-              (set-state! component new-state)
-              (cb))
-      :cljs (.setState component #js {"fulcro$state" new-state} cb))))
+    #?(:clj  (do
+               (set-state! component new-state)
+               (cb))
+       :cljs (.setState component #js {"fulcro$state" new-state} cb))))
 
 (defn update-state!
   "Update a component's local state. Similar to Clojure(Script)'s swap!"
@@ -3175,8 +3175,8 @@
    See the Developer's Guide at book.fulcrologic.com for more details.
    "
                :arglists '([this dbprops computedprops]
-                           [this dbprops computedprops local-css-classes])}
-    defsc
+                            [this dbprops computedprops local-css-classes])}
+   defsc
      [& args]
      (let [location (str *ns* ":" (:line (meta &form)))]
        (try

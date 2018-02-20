@@ -16,15 +16,16 @@ small and tractable.
     - Supports giving progress updates via a general transaction
     - Support request and response middleware
 - Updated developer's guide to include new remoting
-- Requires an update to Fulcro Inspect
 - Client still defaults to *old* networking code. Using abort, progress,
 and middleware is opt-in for now.
 - Made a set-route mutation in routing (augments the set-route mutation helper)
 - Made routing param helper public
+- Added support for putting params on a join key, instead of in a list outside of the join.
 - Added support for custom read parsers on the database, instead of just read helper.
   This allows for easy integration of things like pathom to more easily customize
   the client database engine.
-- Added support for putting params on a join key, instead of in a list outside of the join.
+- On the CLIENT: the `parser` in the `env` will never invoke mutations.
+
 
 2.2.0
 -----
