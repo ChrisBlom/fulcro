@@ -111,12 +111,7 @@
        :network-failed - The request did not complete at the network layer. `detail` will include
                          :error-code and :error-text. :error-code will be one of :exception, http-error, :timeout, or :abort.")
   (abort [this abort-id]
-    "Cancel the network activity for the given request id, supplied during submission.")
-  (network-behavior [this]
-    "Returns flags indicating how this remote should behave in the Fulcro stack. Returned flags can include:
-
-     `:fulcro.client.network/serial?` - Should Fulcro create a FIFO queue for requests to this remote, or should all
-                                        requests be allowed to go immediately? If not supplied it defaults to true."))
+    "Cancel the network activity for the given request id, supplied during submission."))
 
 (defn wrap-fulcro-request
   "Client Remote Middleware to add transit encoding for normal Fulcro requests. Sets the content type and transforms an EDN
@@ -314,8 +309,7 @@
   (abort [this id]
     #?(:cljs (when-let [xhrios (get @active-requests id)]
                (doseq [xhrio xhrios]
-                 (xhrio-abort xhrio)))))
-  (network-behavior [this] {::serial? serial?}))
+                 (xhrio-abort xhrio))))))
 
 (s/fdef transmit
   :args (s/cat

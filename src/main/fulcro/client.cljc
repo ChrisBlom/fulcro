@@ -70,9 +70,6 @@
       [started net listen nil nil]
       (vals @fulcro-tools))))
 
-; easier to access, so the user don't have to require a impl namespace to reference
-(def mutate app/write-entry-point)
-
 (defn new-fulcro-client
   "Entry point for creating a new fulcro client. Instantiates an Application with default values, unless
   overridden by the parameters. If you do not supply a networking object, one will be provided that connects to the
@@ -118,9 +115,9 @@
   NOTE: *it will be allowed* to trigger remote reads. This is not recommended, as you will probably have to augment the networking layer to
   get it to do what you mean. Use `load` instead. You have been warned. Triggering remote reads is allowed, but discouraged and unsupported.
 
-  `:parser` (optional). A customer parser. Using this option will override the Fulcro original parser, it's your
-  responsability to put something compatible with Fulcro structure here. You must use the same Fulcro
-  mutation function (fulcro.client/mutate), otherwise the mutation process will not work.
+  `:read-parser` (optional). A complete customer parser for executing reads against the client database. This parser will be
+  called with and `env` and `query`. The `env` will include the normal parsing environment (e.g. including `state`) and
+  must return a map that satisfies the given query.
 
   `:networking` (optional). An instance of FulcroNetwork that will act as the default remote (named :remote). If
   you want to support multiple remotes, then this should be a map whose keys are the keyword names of the remotes
@@ -138,7 +135,7 @@
   There is currently no way to circumvent the encoding of the body into transit. If you want to talk to other endpoints
   via alternate protocols you must currently implement that outside of the framework (e.g. global functions/state).
   "
-  [& {:keys [initial-state mutation-merge started-callback networking reconciler-options parser
+  [& {:keys [initial-state mutation-merge started-callback networking reconciler-options read-parser
              read-local request-transform network-error-callback migrate transit-handlers shared]
       :or   {initial-state {} read-local (constantly false) started-callback (constantly nil) network-error-callback (constantly nil)
              migrate       nil shared nil}}]
@@ -153,7 +150,7 @@
                        :mutation-merge     mutation-merge
                        :started-callback   started-callback
                        :lifecycle          lifecycle
-                       :parser             parser
+                       :read-parser        read-parser
                        :reconciler-options (merge (cond-> {}
                                                     tx-listen (assoc :tx-listen tx-listen)
                                                     instrument (assoc :instrument instrument)
@@ -187,7 +184,7 @@
 (defn- initialize
   "Initialize the fulcro Application. Creates network queue, sets up i18n, creates reconciler, mounts it, and returns
   the initialized app"
-  [{:keys [networking read-local started-callback parser] :as app} initial-state root-component dom-id-or-node reconciler-options]
+  [{:keys [networking read-local started-callback read-parser] :as app} initial-state root-component dom-id-or-node reconciler-options]
   (let [network-map         (normalize-network networking)
         reconciler-options  (if (-> reconciler-options :id not)
                               (assoc reconciler-options :id (if (string? dom-id-or-node) dom-id-or-node (util/unique-key)))
@@ -195,8 +192,8 @@
         remotes             (keys network-map)
         send-queues         (zipmap remotes (map #(async/chan 1024) remotes))
         response-channels   (zipmap remotes (map #(async/chan) remotes))
-        parser              (or parser
-                                (prim/parser {:read (partial app/read-local read-local) :mutate app/write-entry-point}))
+        parser              (or read-parser
+                              (prim/parser {:read (partial app/read-local read-local)}))
         initial-app         (assoc app :send-queues send-queues :response-channels response-channels
                                        :parser parser :mounted? true)
         app-with-networking (assoc initial-app :networking (start-networking network-map))
@@ -266,7 +263,7 @@
       (initialize app state root-component dom-id-or-node reconciler-options))))
 
 (defrecord Application [initial-state mutation-merge started-callback remotes networking send-queues
-                        response-channels reconciler read-local parser mounted? reconciler-options]
+                        response-channels reconciler read-local read-parser mounted? reconciler-options]
   FulcroApplication
   (mount [this root-component dom-id-or-node] (mount* this root-component dom-id-or-node))
 
@@ -297,12 +294,9 @@
   (abort-request! [this abort-id]
     #?(:cljs
        (doseq [r (keys networking)]
-         (js/console.log :r)
          (let [remote-net (get networking r)]
-           (js/console.log :remote-net)
            (if (implements? net/FulcroRemoteI remote-net)
              (do
-               (js/console.log :abort)
                (net/abort remote-net abort-id)
                (abort-items-on-queue (get send-queues r) abort-id))
              (log/error "Cannot abort requests on remote " r ". It isn't a FulcroRemoteI."))))))

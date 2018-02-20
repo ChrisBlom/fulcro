@@ -273,50 +273,6 @@
                                       (js/setTimeout #(util/force-render reconciler) 0))))]
       (add-watch i18n/*current-locale* app-id re-render))))
 
-(defn generate-reconciler
-  "The reconciler's send method calls FulcroApplication/server-send, which itself requires a reconciler with a
-  send method already defined. This creates a catch-22 / circular dependency on the reconciler and :send field within
-  the reconciler.
-
-  To resolve the issue, we def an atom pointing to the reconciler that the send method will deref each time it is
-  called. This allows us to define the reconciler with a send method that, at the time of initialization, has an app
-  that points to a nil reconciler. By the end of this function, the app's reconciler reference has been properly set."
-  [{:keys [send-queues mutation-merge] :as app} initial-state parser {:keys [migrate] :as reconciler-options}]
-  (let [rec-atom                  (atom nil)
-        remotes                   (keys send-queues)
-        tempid-migrate            (fn [pure _ tempids]
-                                    (doseq [queue (vals send-queues)]
-                                      (prim/rewrite-tempids-in-request-queue queue tempids))
-                                    (let [state-migrate (or migrate prim/resolve-tempids)]
-                                      (state-migrate pure tempids)))
-        initial-state-with-locale (let [set-default-locale (fn [s] (update s :ui/locale (fnil identity :en)))
-                                        is-atom?           (futil/atom? initial-state)
-                                        incoming-locale    (get (if is-atom? @initial-state initial-state) :ui/locale)]
-                                    (when incoming-locale
-                                      (reset! i18n/*current-locale* incoming-locale))
-                                    (if is-atom?
-                                      (do
-                                        (swap! initial-state set-default-locale)
-                                        initial-state)
-                                      (do
-                                        (set-default-locale initial-state))))
-        config                    (merge {}
-                                    reconciler-options
-                                    {:migrate     tempid-migrate
-                                     :state       initial-state-with-locale
-                                     :send        (fn [sends-keyed-by-remote result-merge-callback]
-                                                    (server-send (assoc app :reconciler @rec-atom) sends-keyed-by-remote result-merge-callback))
-                                     :normalize   true
-                                     :remotes     remotes
-                                     :merge-ident (fn [reconciler app-state ident props]
-                                                    (update-in app-state ident (comp prim/sweep-one merge) props))
-                                     :merge-tree  (fn [target source]
-                                                    (prim/merge-handler mutation-merge target source))
-                                     :parser      parser})
-        rec                       (prim/reconciler config)]
-    (reset! rec-atom rec)
-    rec))
-
 (defn initialize-global-error-callbacks
   [app]
   (doseq [remote (keys (:networking app))]
@@ -378,4 +334,50 @@
                               (log/error "Mutation " k " failed with exception" e)
                               (throw e)))))
       rv)))
+
+(defn generate-reconciler
+  "The reconciler's send method calls FulcroApplication/server-send, which itself requires a reconciler with a
+  send method already defined. This creates a catch-22 / circular dependency on the reconciler and :send field within
+  the reconciler.
+
+  To resolve the issue, we def an atom pointing to the reconciler that the send method will deref each time it is
+  called. This allows us to define the reconciler with a send method that, at the time of initialization, has an app
+  that points to a nil reconciler. By the end of this function, the app's reconciler reference has been properly set."
+  [{:keys [send-queues mutation-merge] :as app} initial-state parser {:keys [migrate] :as reconciler-options}]
+  (let [rec-atom                  (atom nil)
+        remotes                   (keys send-queues)
+        tempid-migrate            (fn [pure _ tempids]
+                                    (doseq [queue (vals send-queues)]
+                                      (prim/rewrite-tempids-in-request-queue queue tempids))
+                                    (let [state-migrate (or migrate prim/resolve-tempids)]
+                                      (state-migrate pure tempids)))
+        initial-state-with-locale (let [set-default-locale (fn [s] (update s :ui/locale (fnil identity :en)))
+                                        is-atom?           (futil/atom? initial-state)
+                                        incoming-locale    (get (if is-atom? @initial-state initial-state) :ui/locale)]
+                                    (when incoming-locale
+                                      (reset! i18n/*current-locale* incoming-locale))
+                                    (if is-atom?
+                                      (do
+                                        (swap! initial-state set-default-locale)
+                                        initial-state)
+                                      (do
+                                        (set-default-locale initial-state))))
+        config                    (merge {}
+                                    reconciler-options
+                                    {:migrate         tempid-migrate
+                                     :state           initial-state-with-locale
+                                     :send            (fn [sends-keyed-by-remote result-merge-callback]
+                                                        (server-send (assoc app :reconciler @rec-atom) sends-keyed-by-remote result-merge-callback))
+                                     :normalize       true
+                                     :remotes         remotes
+                                     :merge-ident     (fn [reconciler app-state ident props]
+                                                        (update-in app-state ident (comp prim/sweep-one merge) props))
+                                     :merge-tree      (fn [target source]
+                                                        (prim/merge-handler mutation-merge target source))
+                                     :mutation-parser (or parser
+                                                        (prim/parser {:read (partial read-local read-local) :mutate write-entry-point}))
+                                     :parser          parser})
+        rec                       (prim/reconciler config)]
+    (reset! rec-atom rec)
+    rec))
 
